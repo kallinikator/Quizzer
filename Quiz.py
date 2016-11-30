@@ -1,4 +1,5 @@
-import time
+import re
+import datetime
 import tkinter
 
 import xlwt
@@ -6,13 +7,24 @@ import xlrd
 
 
 class tkGUI(object):
+    """
+    Provides an interface for getting the questions asked. It is initiated as an empty widget.
+    The function quizscreen opens a frame on the widget with the question.
+    """
 
     def __init__(self):
         self.master = tkinter.Tk()
         self.master.title("Börsenführerschein")
+        self.master.attributes("-fullscreen", True)
 
-        self.answer = tkinter.IntVar()
-        self.result = None
+        self.master.update()
+
+        self.width = self.master.winfo_width()
+        self.height = self.master.winfo_height()
+
+        # Timer stuff
+        self.done_time = datetime.datetime.now() + datetime.timedelta(seconds=1800) # half hour
+
         
     def next_click(self):
         # Closes the actual frame to get the next one running
@@ -23,36 +35,84 @@ class tkGUI(object):
         # Stores the result of the radiobuttons
         self.result = self.answer.get()
 
-    def quizscreen(self, question):
+
+    def update_clock(self):
+        # Let the remaining time tick down
+        self.elapsed = self.done_time - datetime.datetime.now()
+        m, s = self.elapsed.seconds//60, self.elapsed.seconds%60
+        self.timer.configure(text="{}:{}".format(m,s))
+        self.frame.after(1000, self.update_clock)
+
+
+    def quizscreen(self, question, num_quest):
         # Creates a frame containing the radionbuttuns and stuff
-        self.frame = tkinter.Frame(master=self.master)
-        self.frame.grid(row=0, column=0, rowspan=10, columnspan=10)
+        self.answer = tkinter.IntVar()
+        self.result = None
+        cells = num_quest*2+5
+        
+        self.frame = tkinter.Frame(master=self.master, background="#D5E88F")
+        self.frame.place(width=self.width, height=self.height)
 
         # The Question
-        tkinter.Label(self.frame, text=question[0]).grid(row=1, column=1, columnspan=5)
-
+        tkinter.Label(
+            self.frame,
+            text=question[0],
+            background="White"
+            ).place(y=self.height/cells,
+                    width=self.width,
+                    height=self.height/cells)
+        
         # The Radiobuttons
-        chooser1 = tkinter.Radiobutton(self.frame, text=question[1], value=1, variable=self.answer, command=self.radioclick)
-        chooser1.grid(row=2, column=0)
+        position = 3
+        for possible_answer in range(1, num_quest+1):
+            tkinter.Radiobutton(
+                self.frame,
+                text=question[possible_answer],
+                value=possible_answer,
+                variable=self.answer,
+                command=self.radioclick
+                ).place(x=self.width/10,
+                        y=position*self.height/cells,
+                        width=8*self.width/10,
+                        height=self.height/cells)
+            position += 2
 
-        chooser2 = tkinter.Radiobutton(self.frame, text=question[2], value=2, variable=self.answer, command=self.radioclick)
-        chooser2.grid(row=3, column=0)
-
-        chooser3 = tkinter.Radiobutton(self.frame, text=question[3], value=3, variable=self.answer, command=self.radioclick)
-        chooser3.grid(row=4, column=0)
-
-        # The Submitbutton
+        # The Nextbutton
         submit_button = tkinter.Button(self.frame,
                                text="Nächste Frage",
                                command=self.next_click)
-        submit_button.grid(row=5, column=1)
+        submit_button.place(x=self.width/10,
+                            y=(cells-2)*self.height/cells,
+                            width=self.width/5,
+                            height=self.height/cells)
 
+        # The Previousbutton
+        submit_button = tkinter.Button(self.frame,
+                               text="Vorherige Frage",
+                               command=self.next_click)
+        submit_button.place(x=4*self.width/10,
+                            y=(cells-2)*self.height/cells,
+                            width=self.width/5,
+                            height=self.height/cells)
+
+        # The timer
+        self.timer = tkinter.Label(self.frame,
+                                   text="")
+        self.timer.place(
+            x=7*self.width/10,
+            y=(cells-2)*self.height/cells,
+            width=self.width/5,
+            height=self.height/cells)
+
+        self.update_clock()
         self.frame.mainloop()
 
 
 
-
 class Quiz(object):
+    """
+    This class manages the input and output in excel-files and the asking of the questions.
+    """
 
     def __init__(self, file, gui):
         # Opens a file with the questions
@@ -73,16 +133,18 @@ class Quiz(object):
 
     # Pick Questions randomly and ask the questions
     def ask_questions(self):
-        for row in range(1, self.workbook.nrows): # With random.shuffle, you can sort the list of questions
+        for row in range(1, self.workbook.nrows):
             question = self.workbook.row_values(row)
-            self.quest(question, row) # There is a iterator function to be implemented.
+            self.quest(question, row)       
         self.save_result()
+        # Add a way of closing the window here!
+
             
     
     # Ask the question and store the answer directly in the .xls
     def quest(self, question, row):
 
-        self.gui.quizscreen(question)
+        self.gui.quizscreen(question, 3)
   
         # Store the results in the resultfile
         self.resultsheet.write(row, 0, question[0])
@@ -101,21 +163,13 @@ class Quiz(object):
     def save_result(self):
         self.resultsheet.write(62, 0, self.score)
         if self.score >= 50:
-            result = "Mit bravour bestanden!"
+            result = "Mit Bravour bestanden!"
         elif self.score >= 30:
             result = "Bestanden!"
         else:
             result = "Nicht bestanden!"
         self.resultsheet.write(62, 1, result)
         self.resultfile.save("result.xls")
-
-
-
-
-
-    # Create a GUI
-
-
 
 
 if __name__ == "__main__":
