@@ -28,6 +28,13 @@ class tkGUI(object):
         
     def next_click(self):
         # Closes the actual frame to get the next one running
+        self.next = 1
+        self.frame.quit()
+ 
+
+    def previous_click(self):
+        # Closes the actual frame to get the next one running
+        self.next = -1
         self.frame.quit()
 
         
@@ -44,7 +51,7 @@ class tkGUI(object):
         self.frame.after(1000, self.update_clock)
 
 
-    def quizscreen(self, question, num_quest):
+    def quizscreen(self, question, num_quest, *args):
         # Creates a frame containing the radionbuttuns and stuff
         self.answer = tkinter.IntVar()
         self.result = None
@@ -86,14 +93,15 @@ class tkGUI(object):
                             width=self.width/5,
                             height=self.height/cells)
 
-        # The Previousbutton
-        submit_button = tkinter.Button(self.frame,
-                               text="Vorherige Frage",
-                               command=self.next_click)
-        submit_button.place(x=4*self.width/10,
-                            y=(cells-2)*self.height/cells,
-                            width=self.width/5,
-                            height=self.height/cells)
+        if not "start" in args:
+            # The Previousbutton
+            submit_button = tkinter.Button(self.frame,
+                                   text="Vorherige Frage",
+                                   command=self.previous_click)
+            submit_button.place(x=4*self.width/10,
+                                y=(cells-2)*self.height/cells,
+                                width=self.width/5,
+                                height=self.height/cells)
 
         # The timer
         self.timer = tkinter.Label(self.frame,
@@ -107,6 +115,29 @@ class tkGUI(object):
         self.update_clock()
         self.frame.mainloop()
 
+
+    def resultscreen(self, score, result):
+        # Creates a final screen that tells your result
+        self.frame = tkinter.Frame(master=self.master, background="#D5E88F")
+        self.frame.place(width=self.width, height=self.height)
+
+        tkinter.Label(
+            self.frame,
+            text="Du hast {} von 60 Punkten erreicht!".format(str(score)),
+            background="White"
+            ).place(y=self.height/7,
+                    width=self.width,
+                    height=self.height/7)
+        
+        tkinter.Label(
+            self.frame,
+            text=result,
+            background="White"
+            ).place(y=3*self.height/7,
+                    width=self.width,
+                    height=2*self.height/7)
+
+        self.frame.mainloop()
 
 
 class Quiz(object):
@@ -125,7 +156,7 @@ class Quiz(object):
         
         self.resultsheet.write(0, 0, "Frage")
         self.resultsheet.write(0, 1, "Richtige Antwort")
-        self.resultsheet.write(0, 0, "Antwort")
+        self.resultsheet.write(0, 2, "Antwort")
 
         # The score of the player
         self.score = 0
@@ -133,42 +164,46 @@ class Quiz(object):
 
     # Pick Questions randomly and ask the questions
     def ask_questions(self):
-        for row in range(1, self.workbook.nrows):
-            question = self.workbook.row_values(row)
-            self.quest(question, row)       
-        self.save_result()
-        # Add a way of closing the window here!
+        #self.gui.startscreen()
+        
+        self.pointer = 1
+        while self.pointer >= 1 and self.pointer < 61:
+            question = self.workbook.row_values(self.pointer)
+            self.quest(question, self.pointer)
+            self.pointer += self.gui.next
 
+        self.save_result()
+
+        self.gui.resultscreen(self.score, self.result)
             
     
     # Ask the question and store the answer directly in the .xls
     def quest(self, question, row):
-
-        self.gui.quizscreen(question, 3)
+        if self.pointer == 1:
+            self.gui.quizscreen(question, 5, "start")
+        else:    
+            self.gui.quizscreen(question, 5)
   
         # Store the results in the resultfile
         self.resultsheet.write(row, 0, question[0])
-        self.resultsheet.write(row, 1, question[4])
+        self.resultsheet.write(row, 1, question[6])
         self.resultsheet.write(row, 2, self.gui.result)
 
         # Validate the result
-        if self.gui.result == int(question[4]): # Ugly solution...
+        if self.gui.result == int(question[6]):
             self.score += 1
-            print("richtig!") # Only for debugging
-        else:
-            print("falsch")
 
 
     # Saves the result in a file and prints the score underneath
     def save_result(self):
         self.resultsheet.write(62, 0, self.score)
         if self.score >= 50:
-            result = "Mit Bravour bestanden!"
+            self.result = "Mit Bravour bestanden!"
         elif self.score >= 30:
-            result = "Bestanden!"
+            self.result = "Bestanden!"
         else:
-            result = "Nicht bestanden!"
-        self.resultsheet.write(62, 1, result)
+            self.result = "Nicht bestanden!"
+        self.resultsheet.write(62, 1, self.result)
         self.resultfile.save("result.xls")
 
 
