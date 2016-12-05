@@ -49,7 +49,77 @@ class tkGUI(object):
         m, s = self.elapsed.seconds//60, self.elapsed.seconds%60
         self.timer.configure(text="{}:{}".format(m,s))
         self.frame.after(1000, self.update_clock)
+        
+        
+    def start_quiz(self):
+        # Only starts the quiz if the password is correct and a name is entered. Stores the namefield in self.name.
+        if self.passwordfield.get() == "start" and self.namefield.get():
+            self.name = self.namefield.get()
+            self.frame.quit()
+    
+    
+    def welcomescreen(self):
+        # Creates a screen that that will start the quiz if you enter a password and your name
+        self.frame = tkinter.Frame(master=self.master, background="#D5E88F")
+        self.frame.place(width=self.width, height=self.height)
 
+        tkinter.Label(
+            self.frame,
+            text="Willkommen zum diesjährigen Börsenführerscheintest!",
+            background="White"
+            ).place(y=self.height/9,
+                    width=self.width,
+                    height=self.height/9)
+        
+        # The entry Widget for the name
+        tkinter.Label(
+            self.frame,
+            text="Name",
+            background="White"
+            ).place(x=self.width/10,
+                    y=3*self.height/9,
+                    width=self.width/5,
+                    height=self.height/9)
+        
+        self.namefield = tkinter.Entry(
+            self.frame,
+            background="White"
+            )
+        self.namefield.place(x=2*self.width/5,
+                    y=3*self.height/9,
+                    width=self.width/2,
+                    height=self.height/9)
+        
+        # The entry Widget for the password
+        tkinter.Label(
+            self.frame,
+            text="Passwort",
+            background="White"
+            ).place(x=self.width/10,
+                    y=5*self.height/9,
+                    width=self.width/5,
+                    height=self.height/9)
+        
+        self.passwordfield = tkinter.Entry(
+            self.frame,
+            background="White"
+            )
+        self.passwordfield.place(x=2*self.width/5,
+                    y=5*self.height/9,
+                    width=self.width/2,
+                    height=self.height/9)
+
+        # The Button to get the stuff running
+        tkinter.Button(self.frame,
+                    text="Start",
+                    command=self.start_quiz).place(
+                            x=self.width/10,
+                            y=7*self.height/9,
+                            width=8*self.width/10,
+                            height=self.height/9)
+        
+        self.frame.mainloop()
+        
 
     def quizscreen(self, question, num_quest, *args):
         # Creates a frame containing the radionbuttuns and stuff
@@ -164,7 +234,7 @@ class Quiz(object):
 
     # Pick Questions randomly and ask the questions
     def ask_questions(self):
-        #self.gui.startscreen()
+        self.gui.welcomescreen()
         
         self.pointer = 1
         while self.pointer >= 1 and self.pointer < 61:
@@ -204,11 +274,10 @@ class Quiz(object):
         else:
             self.result = "Nicht bestanden!"
         self.resultsheet.write(62, 1, self.result)
-        self.resultfile.save("result.xls")
+        self.resultfile.save("Result_{}.xls".format(self.gui.name))
 
 
 if __name__ == "__main__":
     gui = tkGUI()
     a = Quiz("Quiz.xls", gui)
     a.ask_questions()
-
