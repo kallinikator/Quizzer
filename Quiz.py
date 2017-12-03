@@ -5,7 +5,11 @@ import tkinter
 import xlwt
 import xlrd
 
-
+"""
+import os
+os.environ['TCL_LIBRARY'] = "C:\\Users\\Till\\AppData\\Local\\Programs\\Python\\Python36\tcl\\tk8.6"
+os.environ['TK_LIBRARY'] = "C:\\Users\\Till\\AppData\\Local\\Programs\\Python\\Python36\tcl\\tk8.6"
+"""
 class tkGUI(object):
     """
     Provides an interface for getting the questions asked. It is initiated as an empty widget.
@@ -23,7 +27,7 @@ class tkGUI(object):
         self.height = self.master.winfo_height()
 
         # Timer stuff
-        self.done_time = datetime.datetime.now() + datetime.timedelta(seconds=1800) # half hour
+        self.done_time = None # half hour
 
         
     def next_click(self):
@@ -235,7 +239,8 @@ class Quiz(object):
     # Pick Questions randomly and ask the questions
     def ask_questions(self):
         self.gui.welcomescreen()
-        
+
+        self.gui.done_time = datetime.datetime.now() + datetime.timedelta(seconds=1800) # half hour
         self.pointer = 1
         while self.pointer >= 1 and self.pointer < 61:
             question = self.workbook.row_values(self.pointer)
